@@ -7,63 +7,64 @@
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 #include "raylib.h"
+#include "config.h"
 
 #define WHITE_PLR  		1
 #define BLACK_PLR  		0
 
-#define DIM1 			8
-#define DIM2 			8
-#define T_W 	   		100
-#define T_H 	   		T_W
-
-#define SCREEN_W 		T_W*DIM1
-#define SCREEN_H 		T_W*DIM2
-#define MIN_SCREEN_W 		T_W*DIM1
-#define MIN_SCREEN_H 		T_H*DIM2
-#define WINDOW_NAME 		"chess"
-#define FPS 	   		60
-#define FONT_PATH  		"assets/JetBrainsMono-Bold.ttf"
-#define PIECES_PATH 		"assets/$.png"
-#define FONT_SIZE  		24
-
-#define BG_COLOR     		CLITERAL(Color){0x42, 0x54, 0x5f}
-#define W_T_C        		CLITERAL(Color){0xc7, 0xc5, 0xa6, 0xff}
-#define B_T_C        		CLITERAL(Color){0x6d, 0x7b, 0x7b, 0xff}
-#define S_T_C        		CLITERAL(Color){0xdb, 0xb5, 0x5a, 0x88}
-#define PIECES_TINT  		CLITERAL(Color){0xeb, 0xe5, 0xcf, 0xff}
-
+// misc
+#define IN_BOUNDRY(p,p1,p2) 	(p.x >= p1.x && p.x <= p2.x && p.y >= p1.y && p.y <= p2.y)
 #define ASSERT(a, msg) 		if(a) {printf("ERROR: %s\n", msg); exit(1);}
 #define HASH(c)			((c-1)%21)
-#define PADX 			((GetScreenWidth() - (DIM1 * T_W)) / 2)
-#define PADY 			((GetScreenHeight() - (DIM2 * T_H)) / 2)
-#define ON_BOARD(x,y) 		((unsigned)x-PADX < T_W*DIM1 && (unsigned)y-PADY < T_H*DIM2)
-#define DRAW_TILE(x,y,c) 	DrawRectangle(x,y,T_W,T_H,c)
-#define DRAW_PIECE(x, y, t) 	if(HASH(t)) DrawTexture(textures[HASH(t)],x,y,PIECES_TINT);
-#define DRAW_LABEL(x,y,l,c) 	DrawTextEx(font,(char[]){l,'\0'},(Vector2){x,y},FONT_SIZE,0,c);
+#define PADX 			((GetScreenWidth() - (DIM * TILE_SIZE)) / 2)
+#define PADY 			((GetScreenHeight() - (DIM * TILE_SIZE)) / 2)
+#define IN_BOARD(pos) 		IN_BOUNDRY(pos,((Vector2){PADX,PADY}),((Vector2){PADX+TILE_SIZE*DIM, PADY+TILE_SIZE*DIM}))
+#define GET_POS_FROM_TILE(tile, start) ((Vector2){(tile).y * TILE_SIZE + start.x, (tile).x * TILE_SIZE + start.y})
+#define GET_TILE_FROM_POS(pos, start) ((Vector2){(pos.x - start.x)/TILE_SIZE, (pos.y - start.y)/TILE_SIZE})
 #define GET_PLR(c) 		((bool)isupper(c.piece))
-#define IS_TILE_EMPTY(a) 	(!isalpha(a.piece))
+#define IS_TILE_EMPTY(tile) 	(!isalpha(tile.piece))
 
-// require board to be a power of 2
-//#define ON_BOARD(x,y) 		(((unsigned)((x-PADX) |  (y-PADY))) < ((T_W*DIM1) | (T_H*DIM2)))
+// drawing
+#define DRAW_TILE(v,c) 		DrawRectangleV(v,(Vector2){TILE_SIZE, TILE_SIZE},c)
+#define DRAW_PIECE(v,t) 	if(HASH(t)) DrawTextureV(textures[HASH(t)],v,PIECES_TINT);
+#define DRAW_LABEL(x,y,l,c) 	DrawTextEx(font,(char[]){l,'\0'},(Vector2){x,y},FONT_SIZE,0,c);
+#define DRAW_INACTIVE_MASK() 	DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(), INACTIVE_C)
+
+// sound
+#define MOVE_SOUND() 		PlaySound(move_sound)
+#define CAPTURE_SOUND() 	PlaySound(capture_sound)
+
+// Vector2
+#define SUB_VECTOR2(v1, v2) ((Vector2){(v1).x - (v2).x, (v1).y - (v2).y})
+#define ADD_VECTOR2(v1, v2) ((Vector2){(v1).x + (v2).x, (v1).y + (v2).y})
 
 // DEBUGGING
 #define PRINT_XY(x, y) 		printf("\tx = %d, y = %d\n",x,y)
 
 Font font;
+Sound move_sound;
+Sound capture_sound;
 Texture2D textures[19];
 const char pieces[] = "prbnqkPRBNQK";
 #define PIECES_COUNT  12
+#define PAWN_PROMOTE_PIECES "qrbn"
+
+typedef unsigned char uchar;
+typedef unsigned short ushort;
+typedef unsigned int uint;
 
 typedef struct {
 	char piece;
 	bool highlight;
-	unsigned char x;
-	unsigned char y;
+	uchar x;
+	uchar y;
+	Vector2 offset;
 } Tile;
 
 typedef struct {
-	Tile **mat;
+	Tile mat[DIM][DIM];
 	bool player;
 } Board;
 
@@ -81,11 +82,10 @@ void close_window();
 
 // LOCAL FUNCTIONS
 //------------------------------------------------------------------
-void draw_label(char c, int x, int y, Color color);
+void draw_label(char c, ushort x, ushort y, Color color);
 void draw_board(Board *b);
-void load_textures();
+void load_assets();
 void handle_touch(Board *b, Move *move);
-bool in_board(int x, int y);
 
 // PUBLIC IMPLEMENTATION
 //------------------------------------------------------------------
@@ -93,10 +93,10 @@ bool in_board(int x, int y);
 void init_window()
 {
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-	InitWindow(SCREEN_W, SCREEN_W, WINDOW_NAME);
-	SetWindowMinSize(MIN_SCREEN_W, MIN_SCREEN_H);
-	load_textures();
-	font = LoadFont(FONT_PATH);
+	InitWindow(SCREEN_WIDTH, SCREEN_WIDTH, WINDOW_NAME);
+	InitAudioDevice();
+	SetWindowMinSize(MIN_SCREEN_WIDTH, MIN_SCREEN_HEIGHT);
+	load_assets();
 	SetTargetFPS(FPS);
 }
 
@@ -120,40 +120,101 @@ void close_window()
 
 // LOCAL IMPLEMENTATION
 //------------------------------------------------------------------
-void load_textures()
+void load_assets()
 {
-	// Load the pieces pictures
 	Image img;
-	char file_path[] = PIECES_PATH;
-	// find where to change the file name
-	char *x = strchr(file_path, '$');
-	ASSERT(!x, "Please check your pieces img path.");
-	for (int i = 0; i < PIECES_COUNT; i++) {
-		*x = pieces[i];
-		img = LoadImage(file_path);
-		ImageResize(&img, T_W, T_H);
+
+	char pieces_path[] = PIECES_PATH;
+	char sound_path[] = SOUND_PATH;
+	char *pieces_n = strchr(pieces_path, '$');
+	char *sound_n = strchr(sound_path, '$');
+
+	ASSERT(!pieces_n, "Please check your pieces path.");
+	ASSERT(!sound_n, "Please check your sound path.");
+
+	// load pieces images
+	for (uchar i = 0; i < PIECES_COUNT; i++) {
+		*pieces_n = pieces[i];
+		img = LoadImage(pieces_path);
+		ImageResize(&img, TILE_SIZE, TILE_SIZE);
 		textures[HASH(pieces[i])] = LoadTextureFromImage(img);
 	}
+
+	// load sound
+	*sound_n = 'm';
+	move_sound = LoadSound(sound_path);
+	*sound_n = 'c';
+	capture_sound = LoadSound(sound_path);
+
+	// load font
+	font = LoadFont(FONT_PATH);
 }
 
 void draw_board(Board *b)
 {
-	int j, i;
+	short j, i;
+	Vector2 pos;
 
-	for (i = DIM1-1; i >= 0; i--) {
-		for (j = DIM2-1; j >= 0; j--) {
-			// Draw the tiles
-			DRAW_TILE(j*T_W+PADX, i*T_H+PADY, (i+j)%2 ? B_T_C : W_T_C);
+	// draw tiles
+	for (i = 0; i < DIM; i++) {
+		for (j = 0; j < DIM; j++) {
+			pos = (Vector2){j*TILE_SIZE+PADX, i*TILE_SIZE+PADY};
+			DRAW_TILE(pos, (i+j)%2 ? B_T_C : W_T_C);
 			// Draw highlighted tiles
 			if (b->mat[i][j].highlight)
-				DRAW_TILE(j*T_W+PADX, i*T_H+PADY, S_T_C);
-			// Draw the pieces
-			DRAW_PIECE(j*T_W+PADX, i*T_H+PADY, b->mat[i][j].piece);
+				DRAW_TILE(pos, S_T_C);
 		}
-		// draw the labels
-		DRAW_LABEL(PADX+3, i*T_H+PADY+3, '8'-i, (i%2) ? W_T_C : B_T_C);
-		DRAW_LABEL((i+1)*T_W+PADX-14, DIM2*T_H+PADY-20, 'a'+i, (i%2) ? B_T_C : W_T_C);
 	}
+	// Draw the pieces
+	for (i = 0; i < DIM; i++) {
+		for (j = 0; j < DIM; j++) {
+			pos = (Vector2){j*TILE_SIZE+PADX, i*TILE_SIZE+PADY};
+
+			// draw the animation offset
+			if (b->mat[i][j].offset.x)
+				b->mat[i][j].offset.x -= b->mat[i][j].offset.x / 4;
+			if (b->mat[i][j].offset.y)
+				b->mat[i][j].offset.y -= b->mat[i][j].offset.y / 4;
+
+			pos = SUB_VECTOR2(pos, b->mat[i][j].offset);
+
+			DRAW_PIECE(pos, b->mat[i][j].piece);
+		}
+	}
+
+	// draw labels
+}
+
+char open_promoting_menu(Board *b)
+{
+	char selected = 0;
+	Vector2 pos;
+	Vector2 startPos;
+	Vector2 endPos;
+	Vector2 offset = (Vector2){0,TILE_SIZE*2};
+	while (!WindowShouldClose() && !selected) {
+		BeginDrawing();
+		startPos = (Vector2){PADX+2*TILE_SIZE, PADY+3.5*TILE_SIZE};
+		endPos = (Vector2){PADX+6*TILE_SIZE, PADY+4.5*TILE_SIZE};
+		if (offset.y)
+			offset.y -= offset.y / 4;
+		pos = ADD_VECTOR2(startPos, offset);
+		draw_board(b);
+		DRAW_INACTIVE_MASK();
+		for (int i = 0; i < 4; i++) {
+			DRAW_TILE(pos, (i%2) ? B_T_C : W_T_C);
+			DRAW_PIECE(pos, PAWN_PROMOTE_PIECES[i] - b->player*('a' - 'A'));
+			pos.x += TILE_SIZE;
+		}
+		ClearBackground(BG_COLOR);
+		if (IsMouseButtonPressed(0)) {
+			pos = GetMousePosition();
+			if (IN_BOUNDRY(pos, startPos, endPos))
+				selected = PAWN_PROMOTE_PIECES[(int)GET_TILE_FROM_POS(pos, startPos).x];
+		}
+		EndDrawing();
+	}
+	return selected + b->player*('A'-'a');
 }
 
 void handle_touch(Board *b, Move *move)
@@ -162,16 +223,16 @@ void handle_touch(Board *b, Move *move)
 	if (!IsMouseButtonPressed(0))
 		return;
 
-	int x = GetMouseX();
-	int y = GetMouseY();
+	Vector2 pos = GetMousePosition();
 
 	// check if the click was on board
-	if (!ON_BOARD(x, y))
+	if (!IN_BOARD(pos))
 		return;
 
 	// calculate the tile that was clicked
-	x = (x - PADX) / T_W;
-	y = (y - PADY) / T_H;
+	pos = GET_TILE_FROM_POS(pos, ((Vector2){PADX,PADY}));
+	int x = pos.x;
+	int y = pos.y;
 
 	// same tile as before was selected... 
 	// deselecting it...
