@@ -1,4 +1,6 @@
 all:
-	gcc -Wall -o3 main.c -o exe raylib/libraylib-linux.a -lm
-windows:
-	gcc -Wall -o3 main.c -o exe raylib/libraylib-windows.a -lm
+	cd raylib/src/; make PLATFORM=PLATFORM_DESKTOP
+	gcc -Wall -o3 main.c raylib/src/libraylib.a -o exe -lm
+clean:
+	cd raylib/src/; make clean
+	rm -rf exe
