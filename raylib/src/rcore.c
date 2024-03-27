@@ -605,12 +605,14 @@ void InitWindow(int width, int height, const char *title)
     TRACELOG(LOG_INFO, "    > raudio:.... not loaded (optional)");
 #endif
 
+
     // Initialize window data
     CORE.Window.screen.width = width;
     CORE.Window.screen.height = height;
     CORE.Window.eventWaiting = false;
     CORE.Window.screenScale = MatrixIdentity();     // No draw scaling required by default
     if ((title != NULL) && (title[0] != 0)) CORE.Window.title = title;
+
 
     // Initialize global input state
     memset(&CORE.Input, 0, sizeof(CORE.Input));     // Reset CORE.Input structure to 0
@@ -630,6 +632,7 @@ void InitWindow(int width, int height, const char *title)
 
     // Setup default viewport
     SetupViewport(CORE.Window.currentFbo.width, CORE.Window.currentFbo.height);
+
 
 #if defined(SUPPORT_MODULE_RTEXT) && defined(SUPPORT_DEFAULT_FONT)
     // Load default font

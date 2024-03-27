@@ -11,20 +11,22 @@
 #include "raylib.h"
 #include "config.h"
 
-#define WHITE_PLR  		1
-#define BLACK_PLR  		0
+#define WHITE_PLR  		'w'
+#define BLACK_PLR  		'b'
 
 // misc
 #define IN_BOUNDRY(p,p1,p2) 	(p.x >= p1.x && p.x <= p2.x && p.y >= p1.y && p.y <= p2.y)
-#define ASSERT(a, msg) 		if(a) {printf("ERROR: %s\n", msg); exit(1);}
 #define HASH(c)			((c-1)%21)
 #define PADX 			((GetScreenWidth() - (DIM * TILE_SIZE)) / 2)
 #define PADY 			((GetScreenHeight() - (DIM * TILE_SIZE)) / 2)
 #define IN_BOARD(pos) 		IN_BOUNDRY(pos,((Vector2){PADX,PADY}),((Vector2){PADX+TILE_SIZE*DIM, PADY+TILE_SIZE*DIM}))
 #define GET_POS_FROM_TILE(tile, start) ((Vector2){(tile).y * TILE_SIZE + start.x, (tile).x * TILE_SIZE + start.y})
 #define GET_TILE_FROM_POS(pos, start) ((Vector2){(pos.x - start.x)/TILE_SIZE, (pos.y - start.y)/TILE_SIZE})
-#define GET_PLR(c) 		((bool)isupper(c.piece))
+#define GET_PLR(c) 		(isupper(c.piece) ? 'w' : 'b')
 #define IS_TILE_EMPTY(tile) 	(!isalpha(tile.piece))
+#ifndef ASSERT
+	#define ASSERT(a, msg) if(a) {printf("ERROR: %s\n", msg); exit(1);}
+#endif
 
 // drawing
 #define DRAW_TILE(v,c) 		DrawRectangleV(v,(Vector2){TILE_SIZE, TILE_SIZE},c)
@@ -49,7 +51,8 @@ Sound capture_sound;
 Texture2D textures[19];
 const char pieces[] = "prbnqkPRBNQK";
 #define PIECES_COUNT  12
-#define PAWN_PROMOTE_PIECES "qrbn"
+#define PAWN_PROMOTE_PIECES_WHITE "QRBN"
+#define PAWN_PROMOTE_PIECES_BLACK "qrbn"
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -65,7 +68,7 @@ typedef struct {
 
 typedef struct {
 	Tile mat[DIM][DIM];
-	bool player;
+	char player;
 } Board;
 
 typedef struct {
@@ -79,6 +82,8 @@ typedef struct {
 void init_window();
 void draw_window(Board *b, Move *move);
 void close_window();
+void init_board(Board *b);
+void load_fen_to_board(Board *b, const char *fen);
 
 // LOCAL FUNCTIONS
 //------------------------------------------------------------------
@@ -192,6 +197,11 @@ char open_promoting_menu(Board *b)
 	Vector2 startPos;
 	Vector2 endPos;
 	Vector2 offset = (Vector2){0,TILE_SIZE*2};
+
+	char *pawn_promote_pieces = PAWN_PROMOTE_PIECES_WHITE;
+	if (b->player == 'b')
+		pawn_promote_pieces = PAWN_PROMOTE_PIECES_BLACK;
+
 	while (!WindowShouldClose() && !selected) {
 		BeginDrawing();
 		startPos = (Vector2){PADX+2*TILE_SIZE, PADY+3.5*TILE_SIZE};
@@ -203,18 +213,18 @@ char open_promoting_menu(Board *b)
 		DRAW_INACTIVE_MASK();
 		for (int i = 0; i < 4; i++) {
 			DRAW_TILE(pos, (i%2) ? B_T_C : W_T_C);
-			DRAW_PIECE(pos, PAWN_PROMOTE_PIECES[i] - b->player*('a' - 'A'));
+			DRAW_PIECE(pos, pawn_promote_pieces[i]);
 			pos.x += TILE_SIZE;
 		}
 		ClearBackground(BG_COLOR);
 		if (IsMouseButtonPressed(0)) {
 			pos = GetMousePosition();
 			if (IN_BOUNDRY(pos, startPos, endPos))
-				selected = PAWN_PROMOTE_PIECES[(int)GET_TILE_FROM_POS(pos, startPos).x];
+				selected = pawn_promote_pieces[(int)GET_TILE_FROM_POS(pos, startPos).x];
 		}
 		EndDrawing();
 	}
-	return selected + b->player*('A'-'a');
+	return selected;
 }
 
 void handle_touch(Board *b, Move *move)
@@ -252,6 +262,33 @@ void handle_touch(Board *b, Move *move)
 		move->src->highlight = false;
 		move->dest->highlight = false;
 	}
+}
+
+void init_board(Board *b)
+{
+	for (int i = 0; i < DIM; i++) {
+		for (int j = 0; j < DIM; j++) {
+			b->mat[i][j].x = i;
+			b->mat[i][j].y = j;
+			/* b->mat[i][j].offset = (Vector2){0}; */
+			/* b->mat[i][j].highlight = false; */
+		}
+	}
+}
+
+// asuming the fen is legal
+void load_fen_to_board(Board *b, const char *fen)
+{
+	for (int i = 0; *fen != ' '; fen++) {
+		if (isdigit(*fen)) {
+			i += *fen - '0';
+		}
+		else if (isalpha(*fen)) {
+			b->mat[i/8][i%8].piece = *fen;
+			i++;
+		}
+	}
+	b->player = *(++fen);
 }
 
 #endif

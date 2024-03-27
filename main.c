@@ -5,65 +5,18 @@
 #include <ctype.h>
 #include <string.h>
 #include <unistd.h>
+#include "engine.h"
 #include "gui.h"
 #include "raylib.h"
 
-#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-#define SWITCH_PLAYERS(a) (a = !a)
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define SWITCH_PLAYERS(a) (a = (a == 'w' ? 'b' : 'w'))
 
-void init_board(Board *b)
-{
-	b->player = WHITE_PLR;
-	int i, j;
-	// sets the x and y positions
-	for (i = 0; i < DIM; i++) {
-		for (j = 0; j < DIM; j++) {
-			b->mat[i][j].x = i;
-			b->mat[i][j].y = j;
-			b->mat[i][j].offset = (Vector2){0};
-			b->mat[i][j].highlight = false;
-		}
-	}
-}
+#ifndef ASSERT
+	#define ASSERT(a, msg) if(a) {printf("ERROR: %s\n", msg); exit(1);}
+#endif
 
-bool is_legal_fen(const char *fen)
-{
-	int tmp = 0;
-
-	while (*fen) {
-		while (*fen != '/' && *fen) {
-			if (!strchr("rnbqkp", tolower(*fen)) || !isdigit(*fen)) {
-				return false;
-			}
-			if (strchr("rnbqkp", tolower(*fen)))
-				tmp++;
-			if (isdigit(*fen))
-				tmp += *fen - '0';
-			fen++;
-		}
-		if (tmp != DIM)
-			return false;
-		tmp = 0;
-		fen++;
-	}
-	return true;
-}
-
-void load_fen_to_board(Board *b, const char *fen)
-{
-	// convert the fen to the board
-	int i = 0;
-	while (*fen) {
-		if (isdigit(*fen))
-			for (int j = 0; j < *fen - '0'; j++, i++)
-				b->mat[i/8][i%8].piece = 0;
-		else if (isalpha(*fen)) {
-			b->mat[i/8][i%8].piece = *fen;
-			i++;
-		}
-		fen++;
-	}
-}
+char fen[256] = START_FEN;
 
 void mk_move(Board *board, Move *move)
 {
@@ -72,6 +25,7 @@ void mk_move(Board *board, Move *move)
 	move->dest->piece ? CAPTURE_SOUND() : MOVE_SOUND();
 	move->dest->piece = move->src->piece;
 	move->src->piece = 0;
+	// calculate the animation offset
 	move->dest->offset = SUB_VECTOR2(GET_POS_FROM_TILE(*(move->dest), ((Vector2){PADX, PADY})),
 					GET_POS_FROM_TILE(*(move->src), ((Vector2){PADX, PADY})));
 
@@ -81,20 +35,24 @@ void mk_move(Board *board, Move *move)
 		move->dest->piece = open_promoting_menu(board);
 }
 
-int main()
+// the only argument is the fen
+void handle_arguments(int argc, char **argv)
 {
+	int i = 0;
+	while (++i < argc) {
+		strcpy(fen, argv[i]);
+	}
+}
 
-
-	/* printf("%d\n", is_legal_fen(START_FEN)); */
-	/* exit(1); */
-
-
-	Board b;
+int main(int argc, char **argv)
+{
+	handle_arguments(argc, argv);
+	Board b = (Board){0};
 	Move move = (Move){0};
 	init_board(&b);
-	load_fen_to_board(&b, START_FEN);
+	ASSERT(!is_legal_fen(fen, DIM), "fen isn't valid");
+	load_fen_to_board(&b, fen);
 	init_window();
-	/* SetClipboardText(""); */
 	while (!WindowShouldClose()) {
 		draw_window(&b, &move);
 		// check if a move was made
@@ -104,10 +62,6 @@ int main()
 			// reset the move
 			move = (Move){0};
 		}
-		/* if (strcmp(GetClipboardText(), "")) { */
-		/* 	load_fen_to_board(&b, GetClipboardText()); */
-		/* 	SetClipboardText(""); */
-		/* } */
 		sleep(GetFrameTime());
 	}
 	close_window();
