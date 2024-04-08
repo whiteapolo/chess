@@ -3,29 +3,39 @@
 
 #define DIM 			8
 #define TILE_SIZE 		90
+#define PIECE_SIZE 		90
 
-#define SCREEN_WIDTH 		TILE_SIZE*DIM
-#define SCREEN_HEIGHT 		TILE_SIZE*DIM
-#define MIN_SCREEN_WIDTH 	TILE_SIZE*DIM
-#define MIN_SCREEN_HEIGHT 	TILE_SIZE*DIM
+#define WINDOW_WIDTH 		TILE_SIZE*DIM
+#define WINDOW_HEIGHT 		TILE_SIZE*DIM
+#define MIN_WINDOW_WIDTH 	TILE_SIZE*DIM
+#define MIN_WINDOW_HEIGHT 	TILE_SIZE*DIM
 #define WINDOW_NAME 		"chess"
 #define FPS 	   		60
-#define FONT_PATH  		"assets/JetBrainsMono-Bold.ttf"
 /* #define PIECES_PATH 		"assets/$.png" */
 #define PIECES_PATH 		"assets/old/$.png"
-#define SOUND_PATH 		"assets/$.mp3"
-#define FONT_SIZE  		24
+#define SOUND_PATH 		"assets/"
+#define FONT_SIZE  		20
 
-/* #define BG_COLOR     		CLITERAL(Color){0x42, 0x54, 0x5f, 0xff} */
-#define BG_COLOR     		CLITERAL(Color){0x30, 0x2e, 0x2b, 0xff}
-/* #define W_T_C        		CLITERAL(Color){0xc7, 0xc5, 0xa6, 0xff} */
-#define W_T_C        		CLITERAL(Color){0xed, 0xd6, 0xb0, 0xff}
-/* #define B_T_C        		CLITERAL(Color){0x6d, 0x7b, 0x7b, 0xff} */
-#define B_T_C        		CLITERAL(Color){0xb8, 0x87, 0x62, 0xff}
-#define S_T_C        		CLITERAL(Color){0xdb, 0xb5, 0x5a, 0x88}
-#define PIECES_TINT  		CLITERAL(Color){0xeb, 0xe5, 0xcf, 0xff}
-/* #define PIECES_TINT  		WHITE */
+#define COLOR(c) CLITERAL(Color){(c >> 24) & 0xFF, (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF}
 
-#define INACTIVE_C 		CLITERAL(Color){0x00, 0x00, 0x00, 0x30}
+#define THEME_2
+
+#ifdef THEME_1
+	#define BG_COLOR 	COLOR(0x302e2bff)
+	#define W_T_C 		COLOR(0xEDD6B0FF)
+	#define B_T_C        	COLOR(0xb88762ff)
+	#define S_T_C     	COLOR(0xdbb55a88)
+	#define PIECES_TINT 	COLOR(0xebe5cfff)
+	#define INACTIVE_C 	COLOR(0x00000030)
+#endif
+
+#ifdef THEME_2
+	#define BG_COLOR 	COLOR(0x302e2bff)
+	#define W_T_C 		COLOR(0xc7c5a6ff)
+	#define B_T_C        	COLOR(0x6d7b7bff)
+	#define S_T_C     	COLOR(0xdbb55a88)
+	#define PIECES_TINT 	COLOR(0xebe5cfff)
+	#define INACTIVE_C 	COLOR(0x00000030)
+#endif
 
 #endif
