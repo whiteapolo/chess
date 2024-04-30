@@ -1,5 +1,4 @@
-# install
+# build
 ```sh
-make clean
-make
+./build.sh
 ```
