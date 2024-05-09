@@ -10,43 +10,23 @@
 #include <unistd.h>
 #include "raylib.h"
 #include "config.h"
+#include "types_and_macros.h"
 
-#define GAME_LOOP while (!WindowShouldClose())
-
-typedef unsigned char uchar;
-typedef unsigned short ushort;
-typedef unsigned int uint;
-
-typedef struct {
-	char piece;
-	bool highlight;
-	uchar x;
-	uchar y;
-	Vector2 offset;
-} Tile;
-
-typedef struct {
-	Tile mat[DIM][DIM];
-	char player;
-} Board;
-
-typedef struct {
-	Tile *src;
-	Tile *dest;
-} Move;
 
 
 // PUBLIC FUNCTIONS
 //------------------------------------------------------------------
-void init_window(const char *fen);
-bool draw_window();
-void close_window();
+void GuiInitWindow(const char *fen);
+void GuiDrawWindow();
+void GuiCloseWindow();
 
 // return true if loading was successfull
 // false otherwise
-bool load_fen(const char *fen);
-char *get_usr_move();
-void mk_move(char *mv);
-char *get_fen();
+bool GuiLoadFen(const char *fen);
+
+// return true if there was a move
+bool GuiGetUserMove(char mv[4]);
+void GuiMakeMove(char *mv);
+void GuiGetFen(char dest[100]);
 
 #endif

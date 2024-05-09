@@ -1,96 +1,93 @@
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "gui.h"
 #include "assets/font.h"
 #include "config.h"
 #include "raylib.h"
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "types_and_macros.h"
+#include "fen.h"
 
-#define WHITE_PLR  		'w'
-#define BLACK_PLR  		'b'
-#define SWITCH_PLAYERS() 	(b.player = (b.player == 'w' ? 'b' : 'w'))
+#define WHITE_PLR 1
+#define BLACK_PLR 0
 
-#define IN_BOUNDRY(p,p1,p2) 	(p.x >= p1.x && p.x <= p2.x && p.y >= p1.y && p.y <= p2.y)
-#define HASH(c)			((c-1)%21)
+typedef struct {
+	char piece;
+	bool highlight;
+	u8 x;
+	u8 y;
+	Vector2 offset;
+} Tile;
+
+typedef struct {
+	Tile mat[DIM][DIM];
+	char player;
+} Board;
+
+typedef struct {
+	Tile *src;
+	Tile *dest;
+} Move;
+
+static Board b;
+static Move move;
+
+static Font font;
+static Sound move_sound;
+static Sound capture_sound;
+static Texture2D pieces_textures[12];
+
 #define PADX 			((GetScreenWidth() - (DIM * TILE_SIZE)) / 2)
 #define PADY 			((GetScreenHeight() - (DIM * TILE_SIZE)) / 2)
-#define IN_BOARD(pos) 		IN_BOUNDRY(pos,((Vector2){PADX,PADY}),((Vector2){PADX+TILE_SIZE*DIM,PADY+TILE_SIZE*DIM}))
-#define GET_POS_FROM_TILE(tile,start) ((Vector2){(tile).y*TILE_SIZE+start.x,(tile).x*TILE_SIZE+start.y})
-#define GET_TILE_FROM_POS(pos,start) ((Vector2){(pos.x-start.x)/TILE_SIZE,(pos.y-start.y)/TILE_SIZE})
-#define GET_PLR(c) 		(isupper(c.piece) ? 'w' : 'b')
-#define IS_TILE_EMPTY(tile) 	(!isalpha(tile.piece))
+#define IS_TILE_EMPTY(tile) 	(!isalpha((tile).piece))
 
-#define SUB_VECTOR2(v1, v2) 	((Vector2){(v1).x - (v2).x, (v1).y - (v2).y})
-#define ADD_VECTOR2(v1, v2) 	((Vector2){(v1).x + (v2).x, (v1).y + (v2).y})
-
-// drawing
 #define DRAW_TILE(v,c) 		DrawRectangleV(v,(Vector2){TILE_SIZE, TILE_SIZE},c)
-#define DRAW_PIECE(v,t) 	DrawTextureV(textures[HASH(t)],v,PIECES_TINT);
+#define DRAW_PIECE(v,t) 	DrawTextureV(*textureByPiece(t),v,PIECES_TINT);
 #define DRAW_LABEL(x,y,l,c) 	DrawTextEx(font,(char[]){l,'\0'},(Vector2){x,y},FONT_SIZE,0,c);
 #define DRAW_INACTIVE_MASK() 	DrawRectangle(0,0,GetScreenWidth(),GetScreenHeight(), INACTIVE_C)
 
-#define FOR_RANGE(var, from, to, jumps) for (int var = from; var < to; var+=jumps)
-#define MALLOC(type, n) malloc(sizeof(type) * n)
-#define IS_EVEN(num) ((num)&1)
+static void loadAssets();
+static void initBoard();
+static void handleTouch();
+static void drawBoard();
+static Vector2 Vector2Sub(Vector2 v1, Vector2 v2);
+static Vector2 tileToPos(Tile *tile);
+static Tile *posToTile(Vector2 pos);
+static char pieceToPlayer(char piece);
+static Texture *textureByPiece(char piece);
 
-
-#define ASSERT(a, msg) if(a) {printf("ERROR: %s\n", msg); exit(1);}
-
-Board b = (Board){0};
-Move move = (Move){0};
-
-Font font;
-Sound move_sound;
-Sound capture_sound;
-Texture2D textures[19];
-const char pieces[] = "prbnqkPRBNQK";
-#define PIECES_COUNT  12
-#define PAWN_PROMOTE_PIECES_WHITE "QRBN"
-#define PAWN_PROMOTE_PIECES_BLACK "qrbn"
-
-// DEBUGGING
-#define PRINT_XY(x, y) 		printf("\tx = %d, y = %d\n",x,y)
-
-void load_assets();
-bool load_fen(const char *fen);
-bool is_legal_fen(const char *fen);
-void init_board();
-bool handle_touch();
-char open_promoting_menu();
-void draw_board();
-void mk_move();
-
-void init_window(const char *fen)
+void GuiInitWindow(const char *fen)
 {
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME);
 	SetWindowMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
 	InitAudioDevice();
-	load_assets();
+	loadAssets();
 	SetTargetFPS(FPS);
-	init_board();
-	if (!load_fen(fen))
+	initBoard();
+	if (!GuiLoadFen(fen))
 		exit(1);
 }
 
-bool draw_window()
+void GuiDrawWindow()
 {
 	BeginDrawing();
-	draw_board();
+	drawBoard();
 	ClearBackground(BG_COLOR);
-	/* bool move_made = handle_touch(); */
+	handleTouch();
 	EndDrawing();
-	return handle_touch();
 }
 
-void close_window()
+void GuiCloseWindow()
 {
 	CloseWindow();
 }
 
 // LOCAL IMPLEMENTATION
 //------------------------------------------------------------------
-void load_assets()
+static void loadAssets()
 {
 	Image img;
 
@@ -98,11 +95,12 @@ void load_assets()
 	char *pieces_n = strchr(pieces_path, '$');
 
 	// load pieces images
-	FOR_RANGE(i, 0, PIECES_COUNT, 1) {
+	FOR (i, sizeof(pieces)-1) {
 		*pieces_n = pieces[i];
 		img = LoadImage(pieces_path);
 		ImageResize(&img, PIECE_SIZE, PIECE_SIZE);
-		textures[HASH(pieces[i])] = LoadTextureFromImage(img);
+		PRINT_VAR(pieces[i]);
+		*textureByPiece(pieces[i]) = LoadTextureFromImage(img);
 	}
 
 	// load sound
@@ -113,38 +111,43 @@ void load_assets()
 	font = LoadCustomFont();
 }
 
-void draw_board()
+static void drawBoard()
 {
-	Vector2 pos;
+	Vector2 tile_pos;
+	Tile *curr_tile;
 
 	// draw tiles
-	FOR_RANGE(i, 0, DIM, 1) {
-		FOR_RANGE(j, 0, DIM, 1) {
-			pos = (Vector2){j*TILE_SIZE+PADX, i*TILE_SIZE+PADY};
-			DRAW_TILE(pos, IS_EVEN(i+j) ? B_T_C : W_T_C);
+	FOR (i, DIM) {
+		FOR (j, DIM) {
+			curr_tile = &b.mat[i][j];
+			Color tile_color = IS_EVEN(i+j) ? B_T_C : W_T_C;
+			tile_pos.x = j * TILE_SIZE + PADX;
+			tile_pos.y = i * TILE_SIZE + PADY;
+
+			DRAW_TILE(tile_pos, tile_color);
 			// Draw highlighted tiles
-			if (b.mat[i][j].highlight)
-				DRAW_TILE(pos, S_T_C);
+			if (curr_tile->highlight)
+				DRAW_TILE(tile_pos, S_T_C);
 		}
 	}
 	// Draw the pieces
-	FOR_RANGE(i, 0, DIM, 1) {
-		FOR_RANGE(j, 0, DIM, 1) {
+	FOR (i, DIM) {
+		FOR (j, DIM) {
+			curr_tile = &b.mat[i][j];
 			// if there is a piece here
-			if (b.mat[i][j].piece) {
-				pos = (Vector2){j*TILE_SIZE+PADX, i*TILE_SIZE+PADY};
-				// center the piece in the tile
-				pos.x += (TILE_SIZE-PIECE_SIZE)/2;
-				pos.y += (TILE_SIZE-PIECE_SIZE)/2;
+			if (curr_tile->piece) {
+				tile_pos.x = (j * TILE_SIZE + PADX) + ((TILE_SIZE - PIECE_SIZE) / 2);
+				tile_pos.y = (i * TILE_SIZE + PADY) + ((TILE_SIZE - PIECE_SIZE) / 2);
 
 				// calculate the animation offset
-				if (b.mat[i][j].offset.x)
-					b.mat[i][j].offset.x -= b.mat[i][j].offset.x / 4;
+				if (curr_tile->offset.x)
+					curr_tile->offset.x -= curr_tile->offset.x / 4;
 				if (b.mat[i][j].offset.y)
-					b.mat[i][j].offset.y -= b.mat[i][j].offset.y / 4;
-				pos = SUB_VECTOR2(pos, b.mat[i][j].offset);
+					curr_tile->offset.y -= curr_tile->offset.y / 4;
 
-				DRAW_PIECE(pos, b.mat[i][j].piece);
+				tile_pos = Vector2Sub(tile_pos, curr_tile->offset);
+
+				DRAW_PIECE(tile_pos, curr_tile->piece);
 			}
 		}
 		// draw the numbers on the edge of the board
@@ -153,83 +156,60 @@ void draw_board()
 	}
 }
 
-char open_promoting_menu()
+// return true if there was a click
+bool getMouseClick(Vector2 *pos)
 {
-	char selected = 0;
-	Vector2 pos, startPos, endPos;
-	Vector2 offset = (Vector2){0,TILE_SIZE*2};
-
-	char *pawn_promote_pieces = (b.player == 'b') ?
-		PAWN_PROMOTE_PIECES_BLACK : PAWN_PROMOTE_PIECES_WHITE;
-
-	while (!WindowShouldClose() && !selected) {
-		BeginDrawing();
-		startPos = (Vector2){PADX+2*TILE_SIZE, PADY+3.5*TILE_SIZE};
-		endPos = (Vector2){PADX+6*TILE_SIZE, PADY+4.5*TILE_SIZE};
-		if (offset.y)
-			offset.y -= offset.y / 4;
-		pos = ADD_VECTOR2(startPos, offset);
-		draw_board();
-		DRAW_INACTIVE_MASK();
-		FOR_RANGE(i, 0, 4, 1) {
-			DRAW_TILE(pos, IS_EVEN(i) ? B_T_C : W_T_C);
-			DRAW_PIECE(pos, pawn_promote_pieces[i]);
-			pos.x += TILE_SIZE;
-		}
-		ClearBackground(BG_COLOR);
-		if (IsMouseButtonPressed(0)) {
-			pos = GetMousePosition();
-			if (IN_BOUNDRY(pos, startPos, endPos))
-				selected = pawn_promote_pieces[(int)GET_TILE_FROM_POS(pos, startPos).x];
-		}
-		EndDrawing();
-	}
-	return selected;
-}
-
-bool handle_touch()
-{
-	// check if there was a click
-	if (!IsMouseButtonPressed(0))
-		return false;
-
-	Vector2 pos = GetMousePosition();
-
-	// check if the click was on board
-	if (!IN_BOARD(pos))
-		return false;
-
-	// calculate the tile that was clicked
-	pos = GET_TILE_FROM_POS(pos, ((Vector2){PADX,PADY}));
-	uchar x = pos.x;
-	uchar y = pos.y;
-
-	// same tile as before was selected... 
-	// deselecting it...
-	if (&b.mat[y][x] == move.src) {
-		move.src = NULL;
-		b.mat[y][x].highlight = false;
-	// if there a piece on tile and its the same color as the current player
-	} else if (!IS_TILE_EMPTY(b.mat[y][x]) && GET_PLR(b.mat[y][x]) == b.player) {
-		if (move.src != NULL)
-			move.src->highlight = false;
-		move.src = &b.mat[y][x];
-		move.src->highlight = true;
-	// make the move.
-	} else if (move.src != NULL) {
-		move.dest = &b.mat[y][x];
-		// deheighlight the tiles
-		move.src->highlight = false;
-		move.dest->highlight = false;
+	*pos = GetMousePosition();
+	if (IsMouseButtonPressed(0))
 		return true;
-	}
 	return false;
 }
 
-void init_board()
+bool inBoard(Vector2 pos)
 {
-	FOR_RANGE(i, 0, DIM, 1) {
-		FOR_RANGE(j, 0, DIM, 1) {
+	return IN_BOUNDRY(pos.x, PADX, TILE_SIZE * DIM + PADX) &&
+		IN_BOUNDRY(pos.y, PADY, TILE_SIZE * DIM + PADY);
+}
+
+static void handleTouch()
+{
+	Vector2 pos;
+
+	if (!getMouseClick(&pos))
+		return;
+
+	// check if the click was on board
+	if (!inBoard(pos))
+		return;
+
+	Tile *pressed_tile = posToTile(pos);
+		
+	// same tile as before was selected... 
+	// deselecting it...
+	if (pressed_tile == move.src) {
+		move.src = NULL;
+		pressed_tile->highlight = false;
+	// if there a piece on tile and its the same color as the current player
+	} else if (!IS_TILE_EMPTY(*pressed_tile) && pieceToPlayer(pressed_tile->piece) == b.player) {
+		if (move.src != NULL)
+			move.src->highlight = false;
+		move.src = pressed_tile;
+		move.src->highlight = true;
+	// make the move.
+	} else if (move.src != NULL) {
+		move.dest = pressed_tile;
+		// deheighlight the tiles
+		move.src->highlight = false;
+		move.dest->highlight = false;
+	}
+}
+
+static void initBoard()
+{
+	b = (Board){0};
+	move = (Move){0};
+	FOR (i, DIM) {
+		FOR (j, DIM) {
 			b.mat[i][j].x = i;
 			b.mat[i][j].y = j;
 		}
@@ -237,118 +217,137 @@ void init_board()
 }
 
 // check if a fen is legal
-bool is_legal_fen(const char *fen)
+bool GuiLoadFen(const char *fen)
 {
-	int i = 0;
-	int slash = 0;
+	char uncompressed_fen[100];
+	char *cnt;
+	char player;
 
-	while (*fen && *fen != ' ') {
-		if (isdigit(*fen))
-			i += *fen - '0';
-		else if (*fen == '/')
-			slash++;
-		else if (strchr("rnbqkp", tolower(*fen)))
-			i++;
-		else 
-			return false;
-		fen++;
+	if (!FenIsValidFen(fen)) {
+		printf("Chess: This Fen is not valid: \"%s\"\n", fen);
+		return false;
 	}
-	if (!(*(fen++)) || i != 64 || slash != 8 - 1)
-		return false;
 
-	if (!strchr("wb", *(fen++)))
-		return false;
+	FenUncompress(uncompressed_fen, fen, &player);
+	cnt = uncompressed_fen;
 
-	if (!(*(fen++)) && !(*fen + 1))
-		return false;
+	FOR(i, DIM) {
+		FOR(j, DIM) {
+			if (*cnt == EMPTY_SQUARE)
+				b.mat[i][j].piece = 0;
+			else
+				b.mat[i][j].piece = *cnt;
+			cnt++;
+		}
+	}
 
-	FOR_RANGE(j, 0, 4, 1)
-		if (!strchr("-KQkq", *(fen++)))
-			return false;
-
-	if (*fen != '\0' && *fen != ' ')
-		return false;
-
+	b.player = (player == 'w' ? WHITE_PLR : BLACK_PLR);
 	return true;
 }
 
-bool load_fen(const char *fen)
+void GuiMakeMove(char *mv)
 {
-	if (!is_legal_fen(fen)) {
-		printf("This Fen is not valid! %s", fen);
-		return false;
-	}
-	for (int i = 0; *fen != ' '; fen++) {
-		if (isdigit(*fen)) {
-			i += *fen - '0';
-		}
-		else if (isalpha(*fen)) {
-			b.mat[i/8][i%8].piece = *fen;
-			i++;
-		}
-	}
-	b.player = *(++fen);
-	return true;
-}
+	// convert mv to a Move
+	move.src = &b.mat[-(mv[0] - '8')][mv[1] - 'a'];
+	move.dest = &b.mat[-(mv[2] - '8')][mv[3] - 'a'];
 
-void mk_move(char *mv)
-{
-	/* move.src->x = mv[0] - 8 - '0'; */
-	/* move.src->y = mv[1] - 8 - 'a'; */
-	/* move.dest->x = mv[2] - 8 - '0'; */
-	/* move.dest->y = mv[3] - 8 - 'a'; */
-
+	// play sound
 	move.dest->piece ? PlaySound(capture_sound) : PlaySound(move_sound);
+
+	// make the actual move
 	move.dest->piece = move.src->piece;
 	move.src->piece = 0;
+
 	// calculate the animation offset
-	move.dest->offset = SUB_VECTOR2(GET_POS_FROM_TILE(*(move.dest), ((Vector2){PADX, PADY})),
-		GET_POS_FROM_TILE(*(move.src), ((Vector2){PADX, PADY})));
+	Vector2 destv = tileToPos(move.dest);
+	Vector2 srcv = tileToPos(move.src);
+	move.dest->offset = Vector2Sub(destv, srcv);
+
 	// if the move was a promoting pawn
 	// promote it...
 	if (tolower(move.dest->piece) == 'p' && (move.dest->x == 0 || move.dest->x == DIM-1))
-		move.dest->piece = open_promoting_menu();
-	move = (Move){0};
-	SWITCH_PLAYERS();
+		move.dest->piece = b.player == WHITE_PLR ? 'Q' : 'q';
+
+	move.dest = NULL;
+	move.src = NULL;
+
+	// switch players
+	b.player = (b.player == WHITE_PLR ? BLACK_PLR : WHITE_PLR);
 }
 
-char *get_usr_move()
+// return true if there was a move
+bool GuiGetUserMove(char mv[4])
 {
-	if (move.dest != NULL) {
-		char *mv = MALLOC(char, 5);
-		mv[0] = '0' + 8 - move.src->x;
-		mv[1] = 'a' + 8 - move.src->y;
-		mv[2] = '0' + 8 - move.dest->x;
-		mv[3] = 'a' + 8 - move.dest->y;
-		mv[4] = '\0';
-		return mv;
-	}
-	return NULL;
+	if (move.dest == NULL)
+		return false;
+
+	mv[0] = '8' - move.src->x;
+	mv[1] = 'a' + move.src->y;
+	mv[2] = '8' - move.dest->x;
+	mv[3] = 'a' + move.dest->y;
+	move.src = NULL;
+	move.dest = NULL;
+	return true;
 }
 
-char *get_fen()
+void GuiGetFen(char dest[100])
 {
-	char *fen = MALLOC(char, 100);
-	char *start = fen;
+	FenBuilder fb;
+	FenBuilderInit(&fb);
 
-	FOR_RANGE(i, 0, DIM, 1) {
-		FOR_RANGE(j, 0, DIM, 1) {
-			if (b.mat[i][j].piece == 0) {
-				if (isdigit(*(fen-1))) {
-					(*(fen-1))++;
-					fen--;
-				} else {
-					*fen = '1';
-				}
-			} else {
-				*fen = b.mat[i][j].piece;
-			}
-			fen++;
+	FOR(i, DIM) {
+		FOR(j, DIM) {
+			FenBuilderAppendPiece(&fb, b.mat[i][j].piece);
 		}
-		*(fen++) = '/';
 	}
-	*(fen-1) = ' ';
-	*fen = b.player;
-	*(fen+1) = '\0';
-	return start;
+
+	FenBuilderAppendPlayer(&fb, b.player);
+	strcpy(dest, fb.data);
+}
+
+static Vector2 Vector2Sub(Vector2 v1, Vector2 v2)
+{
+	Vector2 v3;
+	v3.x = v1.x - v2.x;
+	v3.y = v1.y - v2.y;
+	return v3;
+}
+
+static char pieceToPlayer(char piece)
+{
+	return ((bool)isupper(piece)) ? WHITE_PLR : BLACK_PLR;
+}
+
+static Vector2 tileToPos(Tile *tile)
+{
+	Vector2 v;
+	v.x = tile->y * TILE_SIZE + PADX;
+	v.y = tile->x * TILE_SIZE + PADY;
+	return v;
+}
+
+static Tile *posToTile(Vector2 pos)
+{
+	u8 x = (pos.x - PADX) / TILE_SIZE;
+	u8 y = (pos.y - PADY) / TILE_SIZE;
+	return &b.mat[y][x];
+}
+
+static Texture *textureByPiece(char piece)
+{
+	switch (piece) {
+		case 'P': return &pieces_textures[0];
+		case 'N': return &pieces_textures[1];
+		case 'B': return &pieces_textures[2];
+		case 'R': return &pieces_textures[3];
+		case 'Q': return &pieces_textures[4];
+		case 'K': return &pieces_textures[5];
+		case 'p': return &pieces_textures[6];
+		case 'n': return &pieces_textures[7];
+		case 'b': return &pieces_textures[8];
+		case 'r': return &pieces_textures[9];
+		case 'q': return &pieces_textures[10];
+		case 'k': return &pieces_textures[11];
+		default: return NULL;
+	}
 }

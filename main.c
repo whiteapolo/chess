@@ -4,48 +4,75 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
-#include "engine.h"
+#include "bitboard.h"
 #include "gui.h"
+#include "move_set.h"
+#include "raylib.h"
+#include "types_and_macros.h"
+#include "fen.h"
 
-#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w"
 
-#define ASSERT(a, msg) if(a) {printf("ERROR: %s\n", msg); exit(1);}
-
-char fen[256] = START_FEN;
+char *fen = START_FEN;
 
 // the only argument is the fen
-void handle_arguments(int argc, char **argv)
+void handleArguments(u32 argc, char **argv)
 {
-	int i = 0;
-	while (++i < argc)
-		strcpy(fen, argv[i]);
+	if (argc > 2) {
+		puts("Chess: Too many arguments");
+		exit(1);
+	}
+
+	if (argc == 2) {
+		fen = argv[1];
+	}
+}
+
+void buildMove(char move[4], u8 src, u8 dest)
+{
+	move[0]	= '8' - (src / 8);
+	move[1]	= 'a' + (src % 8);
+	move[2]	= '8' - (dest / 8);
+	move[3]	= 'a' + (dest % 8);
+}
+
+void parseMove(const char *move, u8 *srck, u8 *destk)
+{
+	*srck    = ('8' - move[0]) * 8;
+	*srck   +=  move[1] - 'a';
+	*destk   = ('8' - move[2]) * 8;
+	*destk  +=  move[3] - 'a';
 }
 
 int main(int argc, char **argv)
 {
-	char *mv;
-	char *current_fen = START_FEN;
-	handle_arguments(argc, argv);
-	init_window(fen);
-	current_fen = get_fen();
-	printf("\nFEN: %s\n", current_fen);
-	free(current_fen);
+	Bitboard bitboard;
+	u8 srck, destk;
+	char move[4];
+	bool mate = false;
+	bool draw = false;
 
-	GAME_LOOP {
-		draw_window();
-		mv = get_usr_move();
-		if (mv) {
-			// need if a move is legal
-			printf("%s\n", mv);
-			mk_move(mv);
-			free(mv);
+	handleArguments(argc, argv);
+	GuiInitWindow(fen);
+	BitboardInit(&bitboard, NULL);
 
-			current_fen = get_fen();
-			printf("FEN: %s\n", current_fen);
-			free(current_fen);
+	while (!WindowShouldClose() && !draw && !mate) {
+		GuiDrawWindow();
+
+		if (GuiGetUserMove(move)) {
+			parseMove(move, &srck, &destk);
+			if (BitboardIsValidMove(&bitboard, srck, destk, bitboard.current_player)) {
+				BitboardMakeMove(&bitboard, srck, destk);
+				GuiMakeMove(move);
+				mate = BitboardIsMated(&bitboard, bitboard.current_player);
+				draw = BitboardIsDraw(&bitboard);
+			}
 		}
 	}
-	close_window();
+
+	GuiCloseWindow();
 	return 0;
 }
+

@@ -1,0 +1,233 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ns/call  ns/call  name    
+ 49.09      0.27     0.27 34821756     7.75     9.56  setPiece
+ 16.36      0.36     0.09 10663609     8.44    43.52  BitboardIsValidMove
+ 10.91      0.42     0.06 20779011     2.89     2.89  AttackMaskBishop
+  9.09      0.47     0.05 14224992     3.51     4.09  AttackMask
+  5.45      0.50     0.03   639321    46.92   795.61  getAllValidMoves
+  5.45      0.53     0.03                             _init
+  3.64      0.55     0.02 17126509     1.17     1.17  AttackMaskRook
+  0.00      0.55     0.00 11071525     0.00    20.86  BitboardMakeMove
+  0.00      0.55     0.00   213666     0.00   807.14  BitboardIsMated
+  0.00      0.55     0.00   213505     0.00   814.52  BitboardIsDraw
+  0.00      0.55     0.00     1000     0.00     0.00  BitboardInit
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2022 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 1.82% of 0.55 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     94.5    0.00    0.52                 main [1]
+                0.00    0.17  213505/213505      BitboardIsDraw [6]
+                0.00    0.17  213666/213666      BitboardIsMated [7]
+                0.01    0.16  212666/639321      getAllValidMoves [2]
+                0.00    0.00  212666/11071525     BitboardMakeMove [5]
+                0.00    0.00    1000/1000        BitboardInit [12]
+-----------------------------------------------
+                0.01    0.16  212666/639321      main [1]
+                0.01    0.16  212989/639321      BitboardIsDraw [6]
+                0.01    0.16  213666/639321      BitboardIsMated [7]
+[2]     92.5    0.03    0.48  639321         getAllValidMoves [2]
+                0.09    0.37 10663609/10663609     BitboardIsValidMove [3]
+                0.01    0.00 3196856/14224992     AttackMask [9]
+                0.00    0.00  407509/20779011     AttackMaskBishop [8]
+                0.00    0.00  273570/17126509     AttackMaskRook [11]
+-----------------------------------------------
+                0.09    0.37 10663609/10663609     getAllValidMoves [2]
+[3]     84.4    0.09    0.37 10663609         BitboardIsValidMove [3]
+                0.00    0.22 10631879/11071525     BitboardMakeMove [5]
+                0.08    0.02 10631879/34821756     setPiece [4]
+                0.04    0.01 10663609/14224992     AttackMask [9]
+                0.01    0.00 1748753/20779011     AttackMaskBishop [8]
+                0.00    0.00 1602645/17126509     AttackMaskRook [11]
+-----------------------------------------------
+                0.00    0.00  227450/34821756     BitboardIsMated [7]
+                0.08    0.02 10631879/34821756     BitboardIsValidMove [3]
+                0.19    0.04 23962427/34821756     BitboardMakeMove [5]
+[4]     60.6    0.27    0.06 34821756         setPiece [4]
+                0.05    0.00 16503282/20779011     AttackMaskBishop [8]
+                0.02    0.00 13167822/17126509     AttackMaskRook [11]
+-----------------------------------------------
+                              349763             BitboardMakeMove [5]
+                0.00    0.00   13784/11071525     BitboardIsMated [7]
+                0.00    0.00  212666/11071525     main [1]
+                0.00    0.00  213196/11071525     BitboardIsDraw [6]
+                0.00    0.22 10631879/11071525     BitboardIsValidMove [3]
+[5]     42.0    0.00    0.23 11071525+349763  BitboardMakeMove [5]
+                0.19    0.04 23962427/34821756     setPiece [4]
+                0.00    0.00  364527/14224992     AttackMask [9]
+                0.00    0.00   85851/20779011     AttackMaskBishop [8]
+                0.00    0.00   48856/17126509     AttackMaskRook [11]
+                              349763             BitboardMakeMove [5]
+-----------------------------------------------
+                0.00    0.17  213505/213505      main [1]
+[6]     31.6    0.00    0.17  213505         BitboardIsDraw [6]
+                0.01    0.16  212989/639321      getAllValidMoves [2]
+                0.00    0.00  213196/11071525     BitboardMakeMove [5]
+-----------------------------------------------
+                0.00    0.17  213666/213666      main [1]
+[7]     31.4    0.00    0.17  213666         BitboardIsMated [7]
+                0.01    0.16  213666/639321      getAllValidMoves [2]
+                0.00    0.00  227450/34821756     setPiece [4]
+                0.00    0.00   13784/11071525     BitboardMakeMove [5]
+-----------------------------------------------
+                0.00    0.00   85851/20779011     BitboardMakeMove [5]
+                0.00    0.00  407509/20779011     getAllValidMoves [2]
+                0.01    0.00 1748753/20779011     BitboardIsValidMove [3]
+                0.01    0.00 2033616/20779011     AttackMask [9]
+                0.05    0.00 16503282/20779011     setPiece [4]
+[8]     10.9    0.06    0.00 20779011         AttackMaskBishop [8]
+-----------------------------------------------
+                0.00    0.00  364527/14224992     BitboardMakeMove [5]
+                0.01    0.00 3196856/14224992     getAllValidMoves [2]
+                0.04    0.01 10663609/14224992     BitboardIsValidMove [3]
+[9]     10.6    0.05    0.01 14224992         AttackMask [9]
+                0.01    0.00 2033616/20779011     AttackMaskBishop [8]
+                0.00    0.00 2033616/17126509     AttackMaskRook [11]
+-----------------------------------------------
+                                                 <spontaneous>
+[10]     5.5    0.03    0.00                 _init [10]
+-----------------------------------------------
+                0.00    0.00   48856/17126509     BitboardMakeMove [5]
+                0.00    0.00  273570/17126509     getAllValidMoves [2]
+                0.00    0.00 1602645/17126509     BitboardIsValidMove [3]
+                0.00    0.00 2033616/17126509     AttackMask [9]
+                0.02    0.00 13167822/17126509     setPiece [4]
+[11]     3.6    0.02    0.00 17126509         AttackMaskRook [11]
+-----------------------------------------------
+                0.00    0.00    1000/1000        main [1]
+[12]     0.0    0.00    0.00    1000         BitboardInit [12]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2022 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+   [9] AttackMask (bitboard.c) [6] BitboardIsDraw         [10] _init
+   [8] AttackMaskBishop (bitboard.c) [7] BitboardIsMated   [2] getAllValidMoves
+  [11] AttackMaskRook (bitboard.c) [3] BitboardIsValidMove [4] setPiece (bitboard.c)
+  [12] BitboardInit            [5] BitboardMakeMove

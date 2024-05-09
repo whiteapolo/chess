@@ -244,7 +244,7 @@ endif
 
 # Define default C compiler and archiver to pack library: CC, AR
 #------------------------------------------------------------------------------------------------
-CC = clang
+CC = gcc
 AR = ar
 
 ifeq ($(PLATFORM),PLATFORM_DESKTOP)
@@ -303,7 +303,7 @@ endif
 #  -D_GNU_SOURCE            access to lots of nonstandard GNU/Linux extension functions
 #  -Werror=pointer-arith    catch unportable code that does direct arithmetic on void pointers
 #  -fno-strict-aliasing     jar_xm.h does shady stuff (breaks strict aliasing)
-CFLAGS = -D_GNU_SOURCE -D$(PLATFORM) -D$(GRAPHICS) -Wno-missing-braces -Werror=pointer-arith -fno-strict-aliasing $(CUSTOM_CFLAGS)
+CFLAGS = -Wall -D_GNU_SOURCE -D$(PLATFORM) -D$(GRAPHICS) -Wno-missing-braces -Werror=pointer-arith -fno-strict-aliasing $(CUSTOM_CFLAGS)
 
 ifneq ($(RAYLIB_CONFIG_FLAGS), NONE)
     CFLAGS += -DEXTERNAL_CONFIG_FLAGS $(RAYLIB_CONFIG_FLAGS)
@@ -329,7 +329,7 @@ ifeq ($(RAYLIB_BUILD_MODE),RELEASE)
         CFLAGS += -Os
     endif
     ifeq ($(PLATFORM),PLATFORM_DESKTOP)
-        CFLAGS += -O3
+        CFLAGS += -O1
     endif
     ifeq ($(PLATFORM),PLATFORM_ANDROID)
         CFLAGS += -O2
