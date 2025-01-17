@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <regex.h>
 
 void FenBuilderInit(FenBuilder *fb)
 {
@@ -39,30 +40,31 @@ char *FenBuilderToString(FenBuilder *fb)
 	return fb->data;
 }
 
+bool check_regex(const char *reg, const char *str)
+{
+	regex_t regex;
+	regcomp(&regex, reg, 0);
+	bool result = !regexec(&regex, str, 0, NULL, 0);
+	regfree(&regex);
+	return result;
+}
+
 bool FenIsValidFen(const char *fen)
 {
-	u16 i = 0;
-	u16 slash = 0;
+	return true;
+	if (!check_regex("^([1-8PNBRQK]+\\/){7}[1-8PNBRQK]+ [wb]", fen))
+		return false;
 
-	while (*fen && *fen != ' ') {
-		if (isdigit(*fen))
-			i += *fen - '0';
-		else if (*fen == '/')
-			slash++;
-		else if (IS_PIECE(*fen))
+	int i = 0;
+	while (*fen != ' ') {
+		if (IS_PIECE(*fen))
 			i++;
-		else
-			return false;
+		else if (isdigit(*fen))
+				i += *fen - '0';
 		fen++;
 	}
-
-	if (*fen == '\0') 		return false;
-	if (*fen != ' ') 		return false;
-	if (!strchr("wb", fen[1])) 	return false;
-	if (i != 64) 			return false;
-	if (slash != 7) 		return false;
-
-	return true;
+	PRINT_VAR(i);
+	return i == 64;
 }
 
 void FenUncompress(char *dest, const char *fen, char *player)

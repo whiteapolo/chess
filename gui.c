@@ -285,6 +285,7 @@ bool GuiGetUserMove(char mv[4])
 	mv[1] = 'a' + move.src->y;
 	mv[2] = '8' - move.dest->x;
 	mv[3] = 'a' + move.dest->y;
+	mv[4] = '\0';
 	move.src = NULL;
 	move.dest = NULL;
 	return true;
