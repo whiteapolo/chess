@@ -3,7 +3,7 @@ set -e
 
 CC=gcc
 CFLAGS="-Wall -O0 -g"
-CFILES="fen.c gui.c main.c bitboard.c"
+CFILES="fen.c gui.c main.c bitboard.c engine.c data_structers/*"
 CLIBS="raylib/src/libraylib.a -lm"
 EXENAME="exe"
 

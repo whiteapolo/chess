@@ -38,6 +38,7 @@ typedef struct {
 } FenBuilder;
 
 #define EMPTY_SQUARE '-'
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w"
 
 void FenBuilderInit(FenBuilder *fb);
 void FenBuilderAppendPlayer(FenBuilder *fb, char player);

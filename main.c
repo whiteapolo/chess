@@ -7,18 +7,19 @@
 #include <time.h>
 #include <unistd.h>
 #include "bitboard.h"
+#include "data_structers/graph.h"
 #include "gui.h"
 #include "move_set.h"
 #include "raylib.h"
 #include "types_and_macros.h"
 #include "fen.h"
+#include "engine.h"
 
-#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w"
-
-char *fen = START_FEN;
+#define USER_PLAY true
+#define COMPUTER_PLAY false
 
 // the only argument is the fen
-void handleArguments(u32 argc, char **argv)
+void handleArguments(u32 argc, char **argv, char **fen)
 {
 	if (argc > 2) {
 		puts("Chess: Too many arguments");
@@ -26,53 +27,53 @@ void handleArguments(u32 argc, char **argv)
 	}
 
 	if (argc == 2) {
-		fen = argv[1];
+		*fen = argv[1];
 	}
 }
 
-void buildMove(char move[4], u8 src, u8 dest)
+void updateBoardStats(Bitboard *b, bool *mate, bool *draw)
 {
-	move[0]	= '8' - (src / 8);
-	move[1]	= 'a' + (src % 8);
-	move[2]	= '8' - (dest / 8);
-	move[3]	= 'a' + (dest % 8);
-}
-
-void parseMove(const char *move, u8 *srck, u8 *destk)
-{
-	*srck    = ('8' - move[0]) * 8;
-	*srck   +=  move[1] - 'a';
-	*destk   = ('8' - move[2]) * 8;
-	*destk  +=  move[3] - 'a';
+	*mate = BitboardIsMated(b, b->current_player);
+	*draw = BitboardIsDraw(b);
 }
 
 int main(int argc, char **argv)
 {
+	Graph g;
 	Bitboard bitboard;
-	u8 srck, destk;
-	char move[4];
+	char move[5];
 	bool mate = false;
 	bool draw = false;
+	char *fen = START_FEN;
 
-	handleArguments(argc, argv);
+	handleArguments(argc, argv, &fen);
 	GuiInitWindow(fen);
-	BitboardInit(&bitboard, NULL);
+	BitboardInit(&bitboard, fen);
+	initStateGraph(&g);
+
+	mate = BitboardIsMated(&bitboard, bitboard.current_player);
+	draw = BitboardIsDraw(&bitboard);
 
 	while (!WindowShouldClose() && !draw && !mate) {
 		GuiDrawWindow();
 
-		if (GuiGetUserMove(move)) {
-			parseMove(move, &srck, &destk);
-			if (BitboardIsValidMove(&bitboard, srck, destk, bitboard.current_player)) {
-				BitboardMakeMove(&bitboard, srck, destk);
-				GuiMakeMove(move);
-				mate = BitboardIsMated(&bitboard, bitboard.current_player);
-				draw = BitboardIsDraw(&bitboard);
+		if (bitboard.current_player == COMPUTER_PLAY) {
+			playBestMove(&g, &bitboard, bitboard.current_player);
+			updateBoardStats(&bitboard, &mate, &draw);
+		} else {
+			if (GuiGetUserMove(move)) {
+				if (BitboardIsValidMoveAlgebraicNotation(&bitboard, move, bitboard.current_player)) {
+					BitboardMakeMoveAlgebraicNotation(&bitboard, move);
+					GuiMakeMove(move);
+					updateBoardStats(&bitboard, &mate, &draw);
+				}
 			}
 		}
 	}
 
+	while (!WindowShouldClose())
+		GuiDrawWindow();
+
 	GuiCloseWindow();
 	return 0;
 }
-
