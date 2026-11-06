@@ -1,9 +1,10 @@
-CC=clang
-CFLAGS=-Wall -o3
+CC=cc
+CFLAGS=-Wall -O3 -g
 
 all:
 	cd raylib/src/; make PLATFORM=PLATFORM_DESKTOP
-	$(CC) $(CFLAGS) gui.c main.c raylib/src/libraylib.a -o exe -lm -g -ggdb
+	$(CC) $(CFLAGS) src/gui.c src/main.c src/bitboard.c raylib/src/libraylib.a -o chess -lm
+
 clean:
 	cd raylib/src/; make clean
-	rm -rf exe
+	rm -rf chess

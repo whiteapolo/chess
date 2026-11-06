@@ -6,8 +6,8 @@
 
 static const char *names[] = {
 	"WHITE_PAWNS", "WHITE_KNIGHTS", "WHITE_BISHOPS", "WHITE_ROOKS", "WHITE_QUEENS",
-        "WHITE_KINGS", "BLACK_PAWNS", "BLACK_KNIGHTS", "BLACK_BISHOPS", "BLACK_ROOKS",
-        "BLACK_QUEEN", "BLACK_KING", "WHITE_ALL", "BLACK_ALL", "ALL",
+    "WHITE_KINGS", "BLACK_PAWNS", "BLACK_KNIGHTS", "BLACK_BISHOPS", "BLACK_ROOKS",
+    "BLACK_QUEEN", "BLACK_KING", "WHITE_ALL", "BLACK_ALL", "ALL",
 };
 
 static const Bitboard start_bitboard = {

@@ -5,21 +5,21 @@
 #include "macros.h"
 
 typedef enum Player {
-	BLACK,
-	WHITE,
+    BLACK,
+    WHITE,
 } Player;
 
 typedef struct {
-	u64 b[15];
-	Player current_player;
+    u64 b[15];
+    Player current_player;
 } Bitboard;
 
 enum BoardType {
-	WHITE_PAWNS, WHITE_KNIGHTS, WHITE_BISHOPS, 
-	WHITE_ROOKS, WHITE_QUEENS, WHITE_KINGS,
-	BLACK_PAWNS, BLACK_KNIGHTS, BLACK_BISHOPS,
-	BLACK_ROOKS, BLACK_QUEENS, BLACK_KINGS,
-	WHITE_ALL, BLACK_ALL, ALL,
+    WHITE_PAWNS, WHITE_KNIGHTS, WHITE_BISHOPS,
+    WHITE_ROOKS, WHITE_QUEENS, WHITE_KINGS,
+    BLACK_PAWNS, BLACK_KNIGHTS, BLACK_BISHOPS,
+    BLACK_ROOKS, BLACK_QUEENS, BLACK_KINGS,
+    WHITE_ALL, BLACK_ALL, ALL,
 };
 
 void BitboardInit(Bitboard *b, const char *fen);

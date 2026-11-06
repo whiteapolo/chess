@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
-#include "raylib.h"
+#include "../raylib/src/raylib.h"
 #include "config.h"
 #include "macros.h"
 
