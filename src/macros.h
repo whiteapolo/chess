@@ -14,22 +14,22 @@ typedef int32_t i32;
 typedef int64_t i64;
 
 #define FOR_RANGE(var, from, to, jumps) for (int var = (from); var < (to); var+=jumps)
-#define FOR(var, till) FOR_RANGE(var, 0, till, 1)
+#define FOR(var, till)                  FOR_RANGE(var, 0, till, 1)
 
-#define REP(n, exp) FOR(_tmp, n) { exp }
+#define REP(n, exp)     FOR(_tmp, n) { exp }
 #define MALLOC(type, n) malloc(sizeof(type) * n)
-#define IS_EVEN(num) ((num)&1)
+#define IS_EVEN(num)    ((num)&1)
 
 #define ASSERT(a, msg) if(a) {printf("ERROR: %s\n", msg); exit(1);}
 
-#define PRINT_VAR(x) _Generic((x), \
-	int: printf("%s = %d\n", #x, x),\
-	float: printf("%s = %d\n", #x, x),\
-	char: printf("%s = %c\n", #x, x),\
-	u8: printf("%s = %d\n", #x, x),\
-	bool: printf("%s = %d\n", #x, x),\
-	short: printf("%s = %d\n", #x, x),\
-	size_t: printf("%s = %d\n", #x, x),\
+#define PRINT_VAR(x) _Generic((x),      \
+	int: printf("%s = %d\n", #x, x),    \
+	float: printf("%s = %d\n", #x, x),  \
+	char: printf("%s = %c\n", #x, x),   \
+	u8: printf("%s = %d\n", #x, x),     \
+	bool: printf("%s = %d\n", #x, x),   \
+	short: printf("%s = %d\n", #x, x),  \
+	size_t: printf("%s = %d\n", #x, x), \
 	unsigned int: printf("%s = %u\n", #x, x))
 
 #endif

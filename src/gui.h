@@ -13,21 +13,21 @@
 #include "macros.h"
 
 typedef struct {
-	char piece;
-	bool highlight;
-	u8 x;
-	u8 y;
-	Vector2 offset;
+    char piece;
+    bool highlight;
+    u8 x;
+    u8 y;
+    Vector2 offset;
 } Tile;
 
 typedef struct {
-	Tile mat[DIM][DIM];
-	char player;
+    Tile mat[DIM][DIM];
+    char player;
 } Board;
 
 typedef struct {
-	Tile *src;
-	Tile *dest;
+    Tile *src;
+    Tile *dest;
 } Move;
 
 
